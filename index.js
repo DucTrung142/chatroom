@@ -113,4 +113,4 @@ io.on('connect', (socket) => {
   });
 });
 const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => console.log('Server started on 8000'));
+app.listen(PORT, () => console.log('Server started on 8000'));
