@@ -3,6 +3,7 @@ const express = require('express');
 const socketio = require('socket.io');
 const http = require('http');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 // Instances
 const app = express();
@@ -57,63 +58,83 @@ const getUser = (id) => {
 const getRoomUsers = (room) => {
   return users.filter((e) => e.room === room);
 };
+//xong rồi tui out nha. oke ông
+//Secrect token 14022000
 
-io.on('connect', (socket) => {
-  socket.on('join', ({ user, room }, callback) => {
-    console.log(user, room);
-    const { response, error } = addUser({
-      id: socket.id,
-      user: user,
-      room: room,
-    });
-
-    console.log(response);
-
-    if (error) {
-      callback(error);
-      return;
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (token) {
+    try {
+      const verifyToken = await jwt.verify(token, '14022000');
+      if (verifyToken) next();
+      else next(new Error('invalid token'));
+    } catch (error) {
+      next(new Error('error server'));
     }
-    socket.join(response.room);
-    socket.emit('message', {
-      user: 'admin',
-      text: `Welcome ${response.user} `,
-    });
-    socket.broadcast
-      .to(response.room)
-      .emit('message', { user: 'admin', text: `${response.user} has joined` });
+  } else {
+    next(new Error('token must not empty'));
+  }
+});
 
-    io.to(response.room).emit('roomMembers', getRoomUsers(response.room));
-  });
-
-  socket.on('sendMessage', (message, callback) => {
-    const user = getUser(socket.id);
-
-    io.to(user.room).emit('message', { user: user.user, text: message });
-
-    callback();
-  });
-
-  //send and get message
-  socket.on('sendMessage', (message, callback) => {
-    const user = getUser(socket.id);
-
-    io.to(user.socketId).emit('message', { user: user.user, text: message });
-
-    callback();
-  });
-
-  //when disconnect
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
-    const user = removeUser(socket.id);
-
-    if (user) {
-      io.to(user.room).emit('message', {
-        user: 'admin',
-        text: `${user.user} has left`,
+io.on('connect', (socket, error) => {
+  if (!error) {
+    socket.on('join', ({ user, room }, callback) => {
+      console.log(user, room);
+      const { response, error } = addUser({
+        id: socket.id,
+        user: user,
+        room: room,
       });
-    }
-  });
+
+      console.log(response);
+
+      if (error) {
+        callback(error);
+        return;
+      }
+      socket.join(response.room);
+      socket.emit('message', {
+        user: 'admin',
+        text: `Welcome ${response.user} `,
+      });
+      socket.broadcast.to(response.room).emit('message', {
+        user: 'admin',
+        text: `${response.user} has joined`,
+      });
+
+      io.to(response.room).emit('roomMembers', getRoomUsers(response.room));
+    });
+
+    socket.on('sendMessage', (message, callback) => {
+      const user = getUser(socket.id);
+
+      io.to(user.room).emit('message', { user: user.user, text: message });
+
+      callback();
+    });
+
+    //send and get message
+    socket.on('sendMessage', (message, callback) => {
+      const user = getUser(socket.id);
+
+      io.to(user.socketId).emit('message', { user: user.user, text: message });
+
+      callback();
+    });
+
+    //when disconnect
+    socket.on('disconnect', () => {
+      console.log('User disconnected');
+      const user = removeUser(socket.id);
+
+      if (user) {
+        io.to(user.room).emit('message', {
+          user: 'admin',
+          text: `${user.user} has left`,
+        });
+      }
+    });
+  } else console.log(error.toString());
 });
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => console.log('Server started on 8000'));
