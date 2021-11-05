@@ -2,11 +2,14 @@
 const express = require('express');
 const socketio = require('socket.io');
 const http = require('http');
+const cors = require('cors');
 
 // Instances
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server, { cors: { origin: '*' } });
+
+app.use(cors());
 
 // End point
 app.get('/', (req, res) => {
