@@ -20,17 +20,17 @@ app.get('/', (req, res) => {
 let users = [];
 
 const addUser = ({ id, user, room }) => {
-  user = user.trim().toLowerCase();
-  room = room.trim().toLowerCase();
+  user = user?.trim().toLowerCase();
+  room = room?.trim().toLowerCase();
 
   if (!user || !room) {
-    return { error: 'name and room required' };
+    return { error: 'Name and room required' };
   }
 
   if (users.length) {
     const data = users.find((e) => e.user === user && e.room === room);
     if (data) {
-      return { error: 'user already exist' };
+      return { error: 'User already exist' };
     }
   }
 
@@ -95,7 +95,7 @@ io.on('connect', (socket, error) => {
       socket.join(response.room);
       socket.emit('message', {
         user: 'admin',
-        text: `Welcome ${response.user} `,
+        text: `Welcome ${response.user}`,
       });
       socket.broadcast.to(response.room).emit('message', {
         user: 'admin',
